@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>БАЗА ДАННЫХ: КЕЙС-1</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Глючный пароль в правом нижнем углу */
+        #hint-glitch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 20px;
+            color: #fff;
+            opacity: 0;
+            text-shadow: 2px 0 #ff0000, -2px 0 #0000ff;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        @keyframes glitch-hint {
+            0% { opacity: 1; transform: translate(2px, -2px); clip-path: inset(10% 0 30% 0); }
+            20% { transform: translate(-2px, 2px) skewX(10deg); }
+            40% { transform: translate(2px, 2px) clip-path: inset(40% 0 10% 0); }
+            60% { transform: translate(-2px, -2px) skewX(-10deg); }
+            80% { transform: translate(2px, 0); }
+            100% { opacity: 0; }
+        }
+
+        /* Экран пароля */
+        #auth-screen {
+            background-color: #161b22;
+            border: 1px solid #da3633;
+            padding: 40px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(218, 54, 51, 0.3);
+        }
+
+        .pass-input {
+            background: #000;
+            border: 1px solid #30363d;
+            color: #00ff41;
+            padding: 10px;
+            font-size: 24px;
+            width: 150px;
+            text-align: center;
+            margin: 20px 0;
+            outline: none;
+            letter-spacing: 5px;
+        }
+
+        .auth-btn {
+            background: #da3633;
+            color: #fff;
+            border: none;
+            padding: 10px 30px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .auth-btn:hover { background: #f85149; }
+
+        /* Экран загрузки */
+        #loading-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .load-bar {
+            width: 300px;
+            height: 4px;
+            background: #30363d;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .load-fill {
+            width: 0%;
+            height: 100%;
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
+
+        @keyframes fill-bar {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        /* Основной документ */
+        #main-document {
+            display: none;
+            padding: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .document-container {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .header { border-bottom: 2px solid #da3633; padding-bottom: 15px; margin-bottom: 30px; text-align: center; }
+        .header h1 { color: #f85149; font-size: 24px; text-transform: uppercase; }
+        .log-image { max-width: 100%; border: 1px solid #30363d; margin: 15px 0; display: block; margin-left: auto; margin-right: auto; }
+        .log-entry { margin-bottom: 15px; }
+        .speaker { font-weight: bold; }
+        .scientist { color: #79c0ff; }
+        .subject { color: #ff7b72; }
+        .guards { color: #d2a8ff; }
+        .action { color: #8b949e; font-style: italic; display: block; margin: 10px 0; padding-left: 10px; border-left: 3px solid #30363d; }
+        .highlight-action { color: #f85149; font-style: italic; background-color: rgba(248, 81, 73, 0.1); padding: 10px; border-left: 3px solid #f85149; margin: 15px 0; }
+        .footer { margin-top: 40px; border-top: 1px solid #30363d; padding-top: 15px; text-align: center; font-size: 12px; color: #484f58; }
+    </style>
+</head>
+<body onload="showHint()">
+
+    <!-- Глюк-подсказка -->
+    <div id="hint-glitch">RECOVERY_CODE: 2410</div>
+
+    <!-- ВВОД ПАРОЛЯ -->
+    <div id="auth-screen">
+        <h2 style="color: #f85149; margin-top: 0;">СИСТЕМА ДОСТУПА</h2>
+        <p>Введите код авторизации:</p>
+        <input type="password" id="passInput" class="pass-input" maxlength="4" placeholder="****">
+        <br>
+        <button class="auth-btn" onclick="checkPass()">ПОДТВЕРДИТЬ</button>
+        <p id="err" style="color: #f85149; display: none; font-size: 12px; margin-top: 15px; font-weight: bold;">ОШИБКА: ДОСТУП ОТКЛОНЕН</p>
+    </div>
+
+    <!-- ЗАГРУЗКА -->
+    <div id="loading-screen">
+        <h2 style="color: #00ff41;">ДЕШИФРОВКА ДАННЫХ...</h2>
+        <div class="load-bar">
+            <div id="filler" class="load-fill"></div>
+        </div>
+        <p id="status-text" style="font-size: 12px; margin-top: 10px; color: #8b949e;">Инициализация протоколов...</p>
+    </div>
+
+    <!-- ДОКУМЕНТ -->
+    <div id="main-document">
+        <div class="document-container">
+            <div class="header">
+                <h1>СЕКРЕТНО: ПРОТОКОЛ ЭКСПЕРИМЕНТА</h1>
+                <img src="file:///C:/Users/VITEK/Downloads/CheckmateBlackSeaBackgroundMenuImage-BO6.jpg" alt="[ИЗОБРАЖЕНИЕ ПОВРЕЖДЕНО]" class="log-image">
+                <p>[Стенограмма аудиозаписи]</p>
+            </div>
+
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый:</span> И так, испытуемый “Кейс-1”, как самочувствие?
+            </div>
+            <div class="log-entry">
+                <span class="speaker subject">“Кейс-1”:</span> Опять вы, что вам ещё от меня надо?
+            </div>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый:</span> Кейс-1, сегодня ваш последний эксперимент, по контракту мы обязаны вас отпустить после него.
+            </div>
+            <div class="log-entry">
+                <span class="speaker subject">“Кейс-1”:</span> Пошли вы…
+            </div>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый [Говорит по рации]:</span> Охрана, подойдите к камере испытуемого “Кейс-1”.
+            </div>
+            <span class="action">[Охрана прибыла]</span>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый:</span> Забираем его.
+            </div>
+            <div class="log-entry">
+                <span class="speaker guards">Охрана:</span> Есть.
+            </div>
+            <span class="action">[Кейс-1 забирают из камеры и ведут по коридору]</span>
+            <span class="action">[Кейс-1 заводят в испытательную камеру]</span>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый:</span> Активировать “Колыбель”.
+            </div>
+            <span class="highlight-action">
+                [Камера в которой находился Кейс-1 заполнилась красным газом. Из камеры слышны крики и рычание, Кейс-1 ударился об стекло, Кейс-1 упал без сознания, газ удален через вентиляцию]
+            </span>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый:</span> Заводите испытуемого 312.
+            </div>
+            <span class="action">[Охрана заводит в камеру другого испытуемого]</span>
+            <div class="log-entry">
+                <span class="speaker subject">Испытуемый 312:</span> Что происходит? Он мертв???
+            </div>
+            <span class="highlight-action">
+                [Кейс-1 очнулся и тут же накинулся на испытуемого 312, Кейс-1 нейтрализовал испытуемого 312]
+            </span>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый:</span> Хорошо, очень хорошо.
+            </div>
+            <div class="log-entry">
+                <span class="speaker subject">Кейс-1:</span> БОЖЕ, ЧТО Я СДЕЛАЛ!!?? ЧТО ВЫ СО МНОЙ СДЕЛАЛИ!!!??
+            </div>
+            <span class="action">[Кейс-1 подвергнут электрошоку, объект потерял сознание]</span>
+            <div class="log-entry">
+                <span class="speaker scientist">Ученый [охране]:</span> Ведите его обратно в камеру.
+            </div>
+            <div class="log-entry">
+                <span class="speaker guards">Охрана:</span> Есть.
+            </div>
+            <span class="action">[Кейса забирает охрана и ведет обратно в камеру]</span>
+
+            <div class="footer">
+                ОБЪЕКТ ПОДЛЕЖИТ ДАЛЬНЕЙШЕМУ НАБЛЮДЕНИЮ. КОПИРОВАНИЕ ЗАПРЕЩЕНО.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Показ пароля в углу
+        function showHint() {
+            const hint = document.getElementById('hint-glitch');
+            setTimeout(() => {
+                hint.style.animation = "glitch-hint 1s steps(2) forwards";
+            }, 800);
+        }
+
+        function checkPass() {
+            const val = document.getElementById('passInput').value;
+            if (val === '2410') {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('loading-screen').style.display = 'flex';
+                document.getElementById('filler').style.animation = 'fill-bar 5s linear forwards';
+                
+                const statuses = ["Обход брандмауэра...", "Чтение зашифрованных секторов...", "Восстановление логов...", "Готово."];
+                statuses.forEach((text, i) => {
+                    setTimeout(() => {
+                        document.getElementById('status-text').innerText = text;
+                    }, i * 1250);
+                });
+
+                // Переход к документу через 5 секунд
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.display = 'none';
+                    document.getElementById('main-document').style.display = 'flex';
+                    document.body.style.alignItems = 'flex-start'; 
+                }, 5000);
+            } else {
+                document.getElementById('err').style.display = 'block';
+                document.getElementById('passInput').value = '';
+            }
+        }
+
+        // Вход по нажатию Enter
+        document.getElementById('passInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPass();
+        });
+    </script>
+</body>
+</html>
